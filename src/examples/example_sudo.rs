@@ -17,11 +17,13 @@
 //! module, whereas the desired module and call are supplied as a string.
 
 use clap::{load_yaml, App};
-use codec::Compact;
 use keyring::AccountKeyring;
-use sp_core::crypto::Pair;
+use primitives::crypto::Pair;
+use codec::Compact;
 use substrate_api_client::{
-    compose_call, compose_extrinsic, extrinsic::xt_primitives::UncheckedExtrinsicV4, Api, XtStatus,
+    compose_extrinsic, compose_call,
+    extrinsic::xt_primitives::{UncheckedExtrinsicV4, GenericAddress},
+    Api,
 };
 
 fn main() {
@@ -30,29 +32,30 @@ fn main() {
 
     // initialize api and set the signer (sender) that is used to sign the extrinsics
     let sudoer = AccountKeyring::Alice.pair();
-    let api = Api::new(format!("ws://{}", url)).set_signer(sudoer);
+    let api = Api::new(format!("ws://{}", url)).set_signer(sudoer.clone());
 
     // set the recipient of newly issued funds
     let to = AccountKeyring::Bob.to_account_id();
 
     // this call can only be called by sudo
-    #[allow(clippy::redundant_clone)]
     let call = compose_call!(
-        api.metadata.clone(),
-        "Balances",
-        "set_balance",
-        to,
-        Compact(42 as u128),
-        Compact(42 as u128)
+            api.metadata.clone(),
+            "Balances",
+            "set_balance",
+            GenericAddress::from(to.clone()),
+            Compact(42 as u128),
+            Compact(42 as u128)
     );
-    #[allow(clippy::redundant_clone)]
-    let xt: UncheckedExtrinsicV4<_> = compose_extrinsic!(api.clone(), "Sudo", "sudo", call);
+    let xt: UncheckedExtrinsicV4<_> = compose_extrinsic!(
+        api.clone(),
+        "Sudo",
+        "sudo",
+        call
+    );
 
     // send and watch extrinsic until finalized
-    let tx_hash = api
-        .send_extrinsic(xt.hex_encode(), XtStatus::InBlock)
-        .unwrap();
-    println!("[+] Transaction got included. Hash: {:?}", tx_hash);
+    let tx_hash = api.send_extrinsic(xt.hex_encode()).unwrap();
+    println!("[+] Transaction got finalized. Hash: {:?}", tx_hash);
 }
 
 pub fn get_node_url_from_cli() -> String {

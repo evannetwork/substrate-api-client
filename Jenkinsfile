@@ -1,23 +1,17 @@
 pipeline {
   agent {
-    docker {
-      image 'scssubstratee/substratee_dev:18.04-2.9.1-1.1.2'
-      args '''
-        -u root
-        --privileged
-      '''
+    node {
+      label 'rust&&sgx'
     }
   }
   options {
     timeout(time: 2, unit: 'HOURS')
-    buildDiscarder(logRotator(numToKeepStr: '3'))
+    buildDiscarder(logRotator(numToKeepStr: '14'))
   }
   stages {
-    stage('Start substrate-test-nodes') {
+    stage('Environment') {
       steps {
-        copyArtifacts fingerprintArtifacts: true, projectName: 'substraTEE/substrate-api-client-test-node_nightly', selector: lastCompleted()
-        sh 'target/release/node-template purge-chain --dev -y'
-        sh 'target/release/node-template --dev &'
+        sh './ci/install_rust.sh'
       }
     }
     stage('Build') {
@@ -40,6 +34,14 @@ pipeline {
         sh 'cargo build --release --examples --message-format json > ${WORKSPACE}/build_examples_release.log'
       }
     }
+    stage('Start substrate-test-nodes') {
+      steps {
+        copyArtifacts fingerprintArtifacts: true, projectName: 'substraTEE/substrate-test-nodes/master', selector: lastCompleted()
+        sh 'target/release/substrate-test-node purge-chain --dev -y'
+        sh 'target/release/substrate-test-node --dev &'
+        sh 'sleep 10'
+      }
+    }
     stage('Unit tests') {
       options {
         timeout(time: 5, unit: 'MINUTES')
@@ -55,14 +57,17 @@ pipeline {
         timeout(time: 1, unit: 'MINUTES')
       }
       steps {
-        // run examples
+        sh 'target/release/examples/example_custom_storage_struct'
         sh 'target/release/examples/example_generic_extrinsic'
         sh 'target/release/examples/example_print_metadata'
         sh 'target/release/examples/example_transfer'
         sh 'target/release/examples/example_get_storage'
-        sh 'target/release/examples/example_get_blocks'
-        sh 'target/release/examples/example_benchmark_bulk_xt'
-        // TODO: example needs fixing sh 'target/release/examples/example_sudo'
+        // echo 'Running tests which are known to hang (needs fixing)'
+        // catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        //   sh 'target/release/examples/example_compose_extrinsic_offline'
+        //   sh 'target/release/examples/example_contract'
+        //   sh 'target/release/examples/example_event_callback'
+        // }
       }
     }
     stage('Clippy') {
@@ -84,7 +89,7 @@ pipeline {
     }
     stage('Formater') {
       steps {
-        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
           sh 'cargo fmt -- --check > ${WORKSPACE}/fmt.log'
         }
       }
@@ -125,20 +130,18 @@ pipeline {
     }
     stage('Archive artifact') {
       steps {
-        archiveArtifacts artifacts: '*.log', fingerprint: true
+        archiveArtifacts artifacts: '**/build_*.log', fingerprint: true
+        archiveArtifacts artifacts: '**/clippy_*.log', fingerprint: true
       }
     }
   }
   post {
     unsuccessful {
-      emailext (
-        subject: "Jenkins Build '${env.JOB_NAME} [${env.BUILD_NUMBER}]' is ${currentBuild.currentResult}",
-        body: "${env.JOB_NAME} build ${env.BUILD_NUMBER} is ${currentBuild.currentResult}\n\nMore info at: ${env.BUILD_URL}",
-        to: "${env.RECIPIENTS_SUBSTRATEE}"
-      )
-    }
-    always {
-      cleanWs()
+        emailext (
+          subject: "Jenkins Build '${env.JOB_NAME} [${env.BUILD_NUMBER}]' is ${currentBuild.currentResult}",
+          body: "${env.JOB_NAME} build ${env.BUILD_NUMBER} changed state and is now ${currentBuild.currentResult}\n\nMore info at: ${env.BUILD_URL}",
+          to: "${env.RECIPIENTS_SUBSTRATEE}"
+        )
     }
   }
 }

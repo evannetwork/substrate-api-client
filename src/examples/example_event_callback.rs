@@ -19,13 +19,13 @@ use std::sync::mpsc::channel;
 use clap::{load_yaml, App};
 use codec::Decode;
 use log::{debug, error};
-use sp_core::sr25519;
-use sp_core::H256 as Hash;
+use primitives::H256 as Hash;
+use primitives::sr25519;
 
 // This module depends on node_runtime.
 // To avoid dependency collisions, node_runtime has been removed from the substrate-api-client library.
 // Replace this crate by your own if you run a custom substrate node to get your custom events.
-use node_template_runtime::Event;
+use node_runtime::Event;
 
 use substrate_api_client::utils::hexstr_to_vec;
 use substrate_api_client::Api;
@@ -38,7 +38,7 @@ fn main() {
 
     println!("Subscribe to events");
     let (events_in, events_out) = channel();
-    api.subscribe_events(events_in);
+    api.subscribe_events(events_in.clone());
 
     loop {
         let event_str = events_out.recv().unwrap();
@@ -49,16 +49,16 @@ fn main() {
         match _events {
             Ok(evts) => {
                 for evr in &evts {
-                    println!("decoded: {:?} {:?}", evr.phase, evr.event);
+                    println!("decoded: phase {:?} event {:?}", evr.phase, evr.event);
                     match &evr.event {
                         Event::balances(be) => {
                             println!(">>>>>>>>>> balances event: {:?}", be);
                             match &be {
-                                balances::RawEvent::Transfer(transactor, dest, value) => {
+                                balances::RawEvent::Transfer(transactor, dest, value, fee) => {
                                     println!("Transactor: {:?}", transactor);
                                     println!("Destination: {:?}", dest);
                                     println!("Value: {:?}", value);
-                                    return;
+                                    println!("Fee: {:?}", fee);
                                 }
                                 _ => {
                                     debug!("ignoring unsupported balances event");

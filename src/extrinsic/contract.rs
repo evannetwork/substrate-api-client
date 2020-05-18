@@ -56,7 +56,7 @@ where
     P: Pair,
     MultiSignature: From<P::Signature>,
 {
-    pub fn contract_put_code(&self, gas_limit: Gas, code: Data) -> ContractPutCodeXt {
+    pub async fn contract_put_code(&self, gas_limit: Gas, code: Data) -> ContractPutCodeXt {
         compose_extrinsic!(
             &self,
             CONTRACTS_MODULE,
@@ -66,7 +66,7 @@ where
         )
     }
 
-    pub fn contract_instantiate(
+    pub async fn contract_instantiate(
         &self,
         endowment: Balance,
         gas_limit: Gas,
@@ -84,7 +84,7 @@ where
         )
     }
 
-    pub fn contract_call(
+    pub async fn contract_call(
         &self,
         dest: GenericAddress,
         value: Balance,

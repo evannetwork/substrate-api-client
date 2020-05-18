@@ -15,38 +15,49 @@
 
 ///! Very simple example that shows how to get some simple storage values.
 use clap::{load_yaml, App};
-
+use codec::Encode;
 use keyring::AccountKeyring;
-use substrate_api_client::{Api, Hash};
 
-fn main() {
+use primitives::crypto::Pair;
+use substrate_api_client::{
+    Api,
+    utils::hexstr_to_u256,
+};
+use futures::executor::block_on;
+async fn run (){
     env_logger::init();
     let url = get_node_url_from_cli();
 
-    let mut api = Api::new(format!("ws://{}", url));
+    let mut api = Api::new(format!("ws://{}", url)).await;
 
     // get some plain storage value
-    let result: u128 = api.get_storage_value("Balances", "TotalIssuance").unwrap();
+    let result_str = api.get_storage("Balances", "TotalIssuance", None).await.unwrap();
+    let result = hexstr_to_u256(result_str).unwrap();
     println!("[+] TotalIssuance is {}", result);
 
-    // get StorageMap
-    let result: Hash = api
-        .get_storage_map("System", "BlockHash", 1u32)
-        .or_else(|| Some(Hash::default()))
+    // get Alice's AccountNonce
+    let accountid = AccountKeyring::Alice.to_account_id();
+    let result_str = api
+        .get_storage("System", "AccountNonce", Some(accountid.encode())).await
         .unwrap();
-    println!("[+] block hash for blocknumber 42 is {:?}", result);
+    let result = hexstr_to_u256(result_str).unwrap();
+    println!("[+] Alice's Account Nonce is {}", result.low_u32());
 
-    // get StorageDoubleMap
-    let result: u32 = api
-        .get_storage_double_map("TemplateModule", "SomeDoubleMap", 1_u32, 2_u32)
-        .or(Some(0))
+    // get Alice's AccountNonce with the AccountKey
+    let signer = AccountKeyring::Alice.pair();
+    let result_str = api
+        .get_storage("System", "AccountNonce", Some(signer.public().encode())).await
         .unwrap();
-    println!("[+] some double map (1,2) should be 3. Is {:?}", result);
+    let result = hexstr_to_u256(result_str).unwrap();
+    println!("[+] Alice's Account Nonce is {}", result.low_u32());
 
     // get Alice's AccountNonce with api.get_nonce()
-    let signer = AccountKeyring::Alice.pair();
     api.signer = Some(signer);
-    println!("[+] Alice's Account Nonce is {}", api.get_nonce().unwrap());
+    println!("[+] Alice's Account Nonce is {}", api.get_nonce().await.unwrap());
+}
+fn main() {
+    let future = run();
+    block_on(future);
 }
 
 pub fn get_node_url_from_cli() -> String {

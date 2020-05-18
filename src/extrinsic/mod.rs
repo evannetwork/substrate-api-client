@@ -81,12 +81,12 @@ macro_rules! compose_extrinsic_offline {
                 (),
             ),
         );
-
+        web_sys::console::log_1(&format_args!("Signing").to_string().into());
         let signature = raw_payload.using_encoded(|payload| $signer.sign(payload));
-
+        web_sys::console::log_1(&format_args!("Signature").to_string().into());
         let mut arr: [u8; 32] = Default::default();
         arr.clone_from_slice($signer.public().as_ref());
-
+        web_sys::console::log_1(&format_args!("Signed").to_string().into());
         UncheckedExtrinsicV4::new_signed(
             $call,
             GenericAddress::from(AccountId::from(arr)),
@@ -105,6 +105,9 @@ macro_rules! compose_extrinsic_offline {
 /// * 'args' - Optional sequence of arguments of the call. They are not checked against the metadata.
 /// As of now the user needs to check himself that the correct arguments are supplied.
 
+
+
+
 #[macro_export]
 #[cfg(feature = "std")]
 macro_rules! compose_extrinsic {
@@ -116,15 +119,14 @@ macro_rules! compose_extrinsic {
             use $crate::extrinsic::codec::Compact;
             use $crate::extrinsic::log::info;
             use $crate::extrinsic::xt_primitives::*;
-
-            info!("Composing generic extrinsic for module {:?} and call {:?}", $module, $call);
+            web_sys::console::log_1(&format_args!("Composing generic extrinsic for module {:?} and call {:?}", $module, $call).to_string().into());
             let call = $crate::compose_call!($api.metadata.clone(), $module, $call $(, ($args)) *);
 
             if let Some(signer) = $api.signer.clone() {
                 $crate::compose_extrinsic_offline!(
                     signer,
                     call.clone(),
-                    $api.get_nonce().unwrap(),
+                    $api.get_nonce().await.unwrap(),
                     $api.genesis_hash,
                     $api.runtime_version.spec_version
                 )

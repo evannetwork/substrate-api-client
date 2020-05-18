@@ -18,7 +18,7 @@ use std::{collections::HashMap, convert::TryFrom, marker::PhantomData, str::From
 
 use codec::{Decode, Encode};
 
-use log::*;
+//use log::*;
 use metadata::{
     DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
     StorageEntryType, StorageHasher, META_RESERVED,

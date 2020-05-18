@@ -1,18 +1,39 @@
 [package]
 name = "substrate-api-client"
-version = "0.4.4-sub2.0.0-alpha.7"
+version = "2.0.0"
 authors = ["Supercomputing Systems AG <info@scs.ch>"]
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 env_logger      = { version = "0.7", optional = true }
-ws              = { version = "0.7", optional = true, features = ["ssl"] }
 hex             = { version = "0.4", default-features = false }
 log             = { version = "0.4", optional = true }
 serde           = { version = "1.0", optional = true, features = ["derive"] }
 serde_json      = { version = "1.0", optional = true }
 thiserror       = { version = "1.0", optional =true }
 primitive-types = { version = "0.6.1", optional = true, features = ["codec"] }
+wasm-bindgen = "=0.2.55"
+futures-signals = {git="https://github.com/alanpoon/rust-signals.git",branch="master"}
+futures = "0.3.5"
+ed25519-dalek = { version = "1.0.0-pre.3", default-features=false, features = ["nightly"]}
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ws              = { version = "0.7", optional = true, features = ["ssl"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = "0.3.19"
+features = [
+    'WebSocket',
+    'Response',
+    'EventTarget',
+    'Event',
+    'MessageEvent',
+		'ErrorEvent'
+]
 
 [dependencies.sp-core]
 version = '2.0.0-alpha.7'
@@ -96,7 +117,7 @@ std = [
 	"sp-version/std",
 	"balances/std",
 	"system/std",
-        "sp-runtime/std",
+	"sp-runtime/std",
 	"support/std",
 	"sp-std/std",
 	"serde/std",
@@ -116,10 +137,6 @@ name = "example_get_storage"
 path = "src/examples/example_get_storage.rs"
 
 [[example]]
-name = "example_get_blocks"
-path = "src/examples/example_get_blocks.rs"
-
-[[example]]
 name = "example_transfer"
 path = "src/examples/example_transfer.rs"
 
@@ -136,27 +153,18 @@ name = "example_print_metadata"
 path = "src/examples/example_print_metadata.rs"
 
 [[example]]
+name = "example_contract"
+path = "src/examples/example_contract.rs"
+
+[[example]]
+name = "example_custom_storage_struct"
+path = "src/examples/example_custom_storage_struct.rs"
+
+[[example]]
 name = "example_compose_extrinsic_offline"
 path = "src/examples/example_compose_extrinsic_offline.rs"
-
-[[example]]
-name = "example_generic_event_callback"
-path = "src/examples/example_generic_event_callback.rs"
-
-[[example]]
-name = "example_benchmark_bulk_xt"
-path = "src/examples/example_benchmark_bulk_xt.rs"
 
 [[example]]
 name = "example_sudo"
 path = "src/examples/example_sudo.rs"
 
-# DEPRECATED. might work but too much work to maintain, sorry
-
-#[[example]]
-#name = "example_contract"
-#path = "src/examples/example_contract.rs"
-
-#[[example]]
-#name = "example_custom_storage_struct"
-#path = "src/examples/example_custom_storage_struct.rs"

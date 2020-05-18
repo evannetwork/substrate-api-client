@@ -18,10 +18,12 @@
 
 use clap::{load_yaml, App};
 use keyring::AccountKeyring;
-use sp_core::crypto::Pair;
+use primitives::crypto::Pair;
 
 use substrate_api_client::{
-    compose_extrinsic, extrinsic::xt_primitives::UncheckedExtrinsicV4, Api, XtStatus,
+    compose_extrinsic,
+    extrinsic::xt_primitives::UncheckedExtrinsicV4,
+    Api,
 };
 
 fn main() {
@@ -37,16 +39,18 @@ fn main() {
 
     // call Balances::transfer
     // the names are given as strings
-    #[allow(clippy::redundant_clone)]
-    let xt: UncheckedExtrinsicV4<_> =
-        compose_extrinsic!(api.clone(), "Balances", "transfer", to, Compact(42 as u128));
+    let xt: UncheckedExtrinsicV3<_, sr25519::Pair>  = compose_extrinsic!(
+        api.clone(),
+        "Balances",
+        "transfer",
+        GenericAddress::from(to.0.clone()),
+        Compact(42 as u128)
+    );
 
     println!("[+] Composed Extrinsic:\n {:?}\n", xt);
 
     // send and watch extrinsic until finalized
-    let tx_hash = api
-        .send_extrinsic(xt.hex_encode(), XtStatus::Finalized)
-        .unwrap();
+    let tx_hash = api.send_extrinsic(xt.hex_encode()).unwrap();
     println!("[+] Transaction got finalized. Hash: {:?}", tx_hash);
 }
 

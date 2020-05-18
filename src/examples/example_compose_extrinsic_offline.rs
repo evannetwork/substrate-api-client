@@ -18,12 +18,14 @@
 
 use clap::{load_yaml, App};
 
+use node_runtime::{BalancesCall, Call};
 use keyring::AccountKeyring;
-use node_template_runtime::{BalancesCall, Call};
-use sp_core::crypto::Pair;
+use primitives::crypto::Pair;
 
 use substrate_api_client::{
-    compose_extrinsic_offline, extrinsic::xt_primitives::UncheckedExtrinsicV4, Api, XtStatus,
+    compose_extrinsic_offline,
+    extrinsic::xt_primitives::UncheckedExtrinsicV4,
+    Api,
 };
 
 fn main() {
@@ -43,10 +45,9 @@ fn main() {
     let to = AccountKeyring::Bob.to_account_id();
 
     // compose the extrinsic with all the element
-    #[allow(clippy::redundant_clone)]
     let xt: UncheckedExtrinsicV4<_> = compose_extrinsic_offline!(
         api.clone().signer.unwrap(),
-        Call::Balances(BalancesCall::transfer(to.clone(), 42)),
+        Call::Balances(BalancesCall::transfer(to.clone().into(), 42)),
         api.get_nonce().unwrap(),
         api.genesis_hash,
         api.runtime_version.spec_version
@@ -55,10 +56,8 @@ fn main() {
     println!("[+] Composed Extrinsic:\n {:?}\n", xt);
 
     // send and watch extrinsic until finalized
-    let blockh = api
-        .send_extrinsic(xt.hex_encode(), XtStatus::Finalized)
-        .unwrap();
-    println!("[+] Transaction got finalized in block {:?}", blockh);
+    let tx_hash = api.send_extrinsic(xt.hex_encode()).unwrap();
+    println!("[+] Transaction got finalized. Hash: {:?}", tx_hash);
 }
 
 pub fn get_node_url_from_cli() -> String {

@@ -16,9 +16,12 @@
 ///! Very simple example that shows how to use a predefined extrinsic from the extrinsic module
 use clap::{load_yaml, App};
 use keyring::AccountKeyring;
-use sp_core::crypto::Pair;
+use primitives::crypto::Pair;
 
-use substrate_api_client::{Api, XtStatus};
+use substrate_api_client::{
+    extrinsic::xt_primitives::*,
+    Api,
+};
 
 fn main() {
     env_logger::init();
@@ -30,15 +33,14 @@ fn main() {
 
     let to = AccountKeyring::Bob.to_account_id();
 
-    match api.get_account_data(&to) {
-        Some(bob) => println!("[+] Bob's Free Balance is is {}\n", bob.free),
-        None => println!("[+] Bob's Free Balance is is 0\n"),
-    }
+    let result = api.get_free_balance(&to);
+    println!("[+] Bob's Free Balance is is {}\n", result);
+
     // generate extrinsic
-    let xt = api.balance_transfer(to.clone(), 1000);
+    let xt = api.balance_transfer(GenericAddress::from(to.clone()), 1000);
 
     println!(
-        "Sending an extrinsic from Alice (Key = {}),\n\nto Bob (Key = {})\n",
+        "Sending an extrinsic from Alice (Key = {:?}),\n\nto Bob (Key = {:?})\n",
         from.public(),
         to
     );
@@ -46,14 +48,12 @@ fn main() {
     println!("[+] Composed extrinsic: {:?}\n", xt);
 
     // send and watch extrinsic until finalized
-    let tx_hash = api
-        .send_extrinsic(xt.hex_encode(), XtStatus::InBlock)
-        .unwrap();
-    println!("[+] Transaction got included. Hash: {:?}\n", tx_hash);
+    let tx_hash = api.send_extrinsic(xt.hex_encode()).unwrap();
+    println!("[+] Transaction got finalized. Hash: {:?}\n", tx_hash);
 
     // verify that Bob's free Balance increased
-    let bob = api.get_account_data(&to).unwrap();
-    println!("[+] Bob's Free Balance is now {}\n", bob.free);
+    let result = api.get_free_balance(&to);
+    println!("[+] Bob's Free Balance is now {}\n", result);
 }
 
 pub fn get_node_url_from_cli() -> String {

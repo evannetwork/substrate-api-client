@@ -19,13 +19,11 @@
 #[macro_use]
 extern crate clap;
 
-use std::convert::TryFrom;
-
 use clap::App;
 
-use sp_core::sr25519;
+use primitives::sr25519;
 
-use substrate_api_client::node_metadata::Metadata;
+use substrate_api_client::node_metadata;
 use substrate_api_client::Api;
 
 fn main() {
@@ -34,18 +32,11 @@ fn main() {
 
     let api = Api::<sr25519::Pair>::new(format!("ws://{}", url));
 
-    let meta = Metadata::try_from(api.get_metadata()).unwrap();
-
-    meta.print_overview();
-    meta.print_modules_with_calls();
-    meta.print_modules_with_events();
-
-    // print full substrate metadata json formatted
+    let meta = api.get_metadata();
     println!(
-        "{}",
-        Metadata::pretty_format(&api.get_metadata())
-            .unwrap_or_else(|| "pretty format failed".to_string())
-    )
+        "Metadata:\n {}",
+        node_metadata::pretty_format(&meta).unwrap()
+    );
 }
 
 pub fn get_node_url_from_cli() -> String {
