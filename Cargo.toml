@@ -15,7 +15,7 @@ serde           = { version = "1.0", optional = true, features = ["derive"] }
 serde_json      = { version = "1.0", optional = true }
 thiserror       = { version = "1.0", optional =true }
 primitive-types = { version = "0.6.1", optional = true, features = ["codec"] }
-wasm-bindgen = "=0.2.55"
+wasm-bindgen = "0.2"
 futures-signals = {git="https://github.com/alanpoon/rust-signals.git",branch="master"}
 futures = "0.3.5"
 ed25519-dalek = { version = "1.0.0-pre.3", default-features=false, features = ["nightly"]}
